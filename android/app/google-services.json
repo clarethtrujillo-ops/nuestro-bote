@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1072486340271",
+    "project_id": "nuestro-bote",
+    "storage_bucket": "nuestro-bote.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1072486340271:android:40d912d0c004783618265a",
+        "android_client_info": {
+          "package_name": "com.example.nuestro_bote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_yvng15tz-eBWYfLoBZh3v99itS3rGpc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

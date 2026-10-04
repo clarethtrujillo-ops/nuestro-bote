@@ -1,0 +1,34 @@
+name: nuestro_bote
+description: App compartida de deseos para parejas.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  cloud_firestore: ^6.10.0
+  firebase_auth: ^6.7.0
+  firebase_core: ^4.15.0
+  flutter:
+    sdk: flutter
+  flutter_local_notifications: 21.0.0
+  flutter_svg: ^2.3.0
+  flutter_timezone: 5.1.0
+  http: ^1.6.0
+  image: ^4.10.1
+  image_picker: ^1.2.3
+  shared_preferences: ^2.5.5
+  timezone: ^0.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/avatars/

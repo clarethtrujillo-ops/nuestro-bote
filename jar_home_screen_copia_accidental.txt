@@ -1,0 +1,1117 @@
+import 'package:flutter/material.dart';
+
+import '../../../../app/routes/app_routes.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../core/widgets/primary_button.dart';
+import '../../../wishes/domain/models/wish.dart';
+import '../widgets/jar_bottom_navigation.dart';
+import '../widgets/wish_jar_empty_illustration.dart';
+
+class JarHomeScreen extends StatefulWidget {
+  const JarHomeScreen({super.key});
+
+  @override
+  State<JarHomeScreen> createState() => _JarHomeScreenState();
+}
+
+class _JarHomeScreenState extends State<JarHomeScreen> {
+  int _selectedIndex = 0;
+  Wish? _latestWish;
+
+  void _goBack() {
+    final navigator = Navigator.of(context);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    navigator.pushReplacementNamed(
+      AppRoutes.connectionSuccess,
+    );
+  }
+
+  void _selectDestination(int index) {
+    if (index == 0) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            index == 1
+                ? 'La vista de Recuerdos será creada después.'
+                : 'La vista de Perfil será creada después.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.elevated,
+        ),
+      );
+  }
+
+  Future<void> _openNewWish() async {
+    final createdWish = await Navigator.of(context).pushNamed<Wish>(
+      AppRoutes.createWish,
+    );
+
+    if (!mounted || createdWish == null) {
+      return;
+    }
+
+    setState(() {
+      _latestWish = createdWish;
+    });
+  }
+
+  Future<void> _openWishDetails() async {
+    final currentWish = _latestWish;
+
+    if (currentWish == null) {
+      return;
+    }
+
+    final updatedWish = await Navigator.of(context).pushNamed<Wish>(
+      AppRoutes.wishDetail,
+      arguments: currentWish,
+    );
+
+    if (!mounted || updatedWish == null) {
+      return;
+    }
+
+    setState(() {
+      _latestWish = updatedWish;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wish = _latestWish;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      bottomNavigationBar: JarBottomNavigation(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _selectDestination,
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 430,
+            ),
+            child: wish == null
+                ? _EmptyJarView(
+                    onBack: _goBack,
+                    onCreateWish: _openNewWish,
+                  )
+                : _PopulatedJarView(
+                    wish: wish,
+                    onBack: _goBack,
+                    onAddWish: _openNewWish,
+                    onOpenWish: _openWishDetails,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyJarView extends StatelessWidget {
+  const _EmptyJarView({
+    required this.onBack,
+    required this.onCreateWish,
+  });
+
+  final VoidCallback onBack;
+  final VoidCallback onCreateWish;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            18,
+            14,
+            18,
+            24,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - 38,
+            ),
+            child: Column(
+              children: [
+                _HomeHeader(
+                  onBack: onBack,
+                  showCoupleInitials: false,
+                ),
+                const SizedBox(height: 28),
+                const _CoupleConnection(),
+                const SizedBox(height: 24),
+                const Text(
+                  'Este bote ya es\nde los dos',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 28,
+                    height: 1.02,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.7,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Empiecen guardando algo que quieran\n'
+                  'vivir juntos.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const WishJarEmptyIllustration(
+                  size: 185,
+                ),
+                const SizedBox(height: 10),
+                const _EmptyJarCard(),
+                const SizedBox(height: 18),
+                PrimaryButton(
+                  label: 'Guardar primer deseo',
+                  onPressed: onCreateWish,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PopulatedJarView extends StatelessWidget {
+  const _PopulatedJarView({
+    required this.wish,
+    required this.onBack,
+    required this.onAddWish,
+    required this.onOpenWish,
+  });
+
+  final Wish wish;
+  final VoidCallback onBack;
+  final VoidCallback onAddWish;
+  final VoidCallback onOpenWish;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        18,
+        14,
+        18,
+        28,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _PopulatedHeader(
+            onBack: onBack,
+          ),
+          const SizedBox(height: 15),
+          const _SavedWishNotification(),
+          const SizedBox(height: 24),
+          const Text(
+            'Nuestro bote',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 31,
+              height: 1,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Todo lo que quieren vivir, en un mismo lugar.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const SizedBox(
+            width: double.infinity,
+            height: 175,
+            child: CustomPaint(
+              painter: _PixelHeartPainter(),
+            ),
+          ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '1 deseo',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: onAddWish,
+                icon: const Icon(
+                  Icons.add_rounded,
+                  size: 20,
+                ),
+                label: const Text('Agregar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(
+                    color: AppColors.textSecondary,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _WishListCard(
+            wish: wish,
+            onPressed: onOpenWish,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PopulatedHeader extends StatelessWidget {
+  const _PopulatedHeader({
+    required this.onBack,
+  });
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onBack,
+            tooltip: 'Volver',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 38,
+              minHeight: 38,
+            ),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary,
+              size: 17,
+            ),
+          ),
+          const SizedBox(width: 5),
+          const Expanded(
+            child: Text(
+              'nuestro · bote',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const _HeaderInitial(
+            letter: 'D',
+            color: AppColors.pink,
+          ),
+          const SizedBox(width: 6),
+          const _HeaderInitial(
+            letter: 'A',
+            color: AppColors.lavender,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({
+    required this.onBack,
+    required this.showCoupleInitials,
+  });
+
+  final VoidCallback onBack;
+  final bool showCoupleInitials;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onBack,
+            tooltip: 'Volver',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+            ),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'nuestro · bote',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Un espacio para los dos',
+                  style: TextStyle(
+                    color: AppColors.inactive,
+                    fontSize: 9,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showCoupleInitials)
+            const Row(
+              children: [
+                _HeaderInitial(
+                  letter: 'D',
+                  color: AppColors.pink,
+                ),
+                SizedBox(width: 6),
+                _HeaderInitial(
+                  letter: 'A',
+                  color: AppColors.lavender,
+                ),
+              ],
+            )
+          else
+            IconButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'La configuración se añadirá posteriormente.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: AppColors.elevated,
+                    ),
+                  );
+              },
+              tooltip: 'Configuración',
+              icon: const Icon(
+                Icons.more_horiz_rounded,
+                color: AppColors.textSecondary,
+              ),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.surface,
+                side: const BorderSide(
+                  color: AppColors.border,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderInitial extends StatelessWidget {
+  const _HeaderInitial({
+    required this.letter,
+    required this.color,
+  });
+
+  final String letter;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        letter,
+        style: const TextStyle(
+          color: AppColors.background,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _SavedWishNotification extends StatelessWidget {
+  const _SavedWishNotification();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 13,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: const Row(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: AppColors.coral,
+            child: Icon(
+              Icons.check_rounded,
+              color: AppColors.background,
+              size: 16,
+            ),
+          ),
+          SizedBox(width: 12),
+          Text(
+            'Deseo guardado en su bote',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WishListCard extends StatelessWidget {
+  const _WishListCard({
+    required this.wish,
+    required this.onPressed,
+  });
+
+  final Wish wish;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        15,
+        12,
+        14,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      foregroundDecoration: const BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: AppColors.coral,
+            width: 4,
+          ),
+        ),
+        borderRadius: BorderRadius.all(
+          Radius.circular(15),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      wish.category.label.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.coral,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 7,
+                      height: 7,
+                      color: AppColors.coral,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  wish.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 13),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      color: AppColors.textSecondary,
+                      size: 15,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Antes del ${_formatLongDate(wish.dueDate)}',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      width: 27,
+                      height: 27,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: AppColors.pink,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        wish.proposedBy,
+                        style: const TextStyle(
+                          color: AppColors.background,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Propuesto por ${wish.proposedBy}',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.lavender.withValues(
+                          alpha: 0.18,
+                        ),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Text(
+                        'Pendiente',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.border,
+                ),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: AppColors.textPrimary,
+                size: 21,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatLongDate(DateTime date) {
+    const months = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
+
+    return '${date.day} de ${months[date.month - 1]}';
+  }
+}
+
+class _CoupleConnection extends StatelessWidget {
+  const _CoupleConnection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const _SmallInitial(
+          letter: 'D',
+          color: AppColors.pink,
+        ),
+        Container(
+          width: 34,
+          height: 2,
+          color: AppColors.border,
+        ),
+        Container(
+          width: 31,
+          height: 31,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.coral,
+            ),
+          ),
+          child: const Icon(
+            Icons.link_rounded,
+            color: AppColors.coral,
+            size: 18,
+          ),
+        ),
+        Container(
+          width: 34,
+          height: 2,
+          color: AppColors.border,
+        ),
+        const _SmallInitial(
+          letter: 'A',
+          color: AppColors.lavender,
+        ),
+      ],
+    );
+  }
+}
+
+class _SmallInitial extends StatelessWidget {
+  const _SmallInitial({
+    required this.letter,
+    required this.color,
+  });
+
+  final String letter;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        letter,
+        style: const TextStyle(
+          color: AppColors.background,
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyJarCard extends StatelessWidget {
+  const _EmptyJarCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 15,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: const Row(
+        children: [
+          _StateIcon(
+            icon: Icons.favorite_border_rounded,
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Su bote está vacío',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Los deseos que agreguen aparecerán aquí.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StateIcon extends StatelessWidget {
+  const _StateIcon({
+    required this.icon,
+  });
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.coral.withValues(
+          alpha: 0.12,
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(
+        icon,
+        size: 19,
+        color: AppColors.coral,
+      ),
+    );
+  }
+}
+
+class _PixelHeartPainter extends CustomPainter {
+  const _PixelHeartPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final unit = size.width / 45;
+
+    final heartPaint = Paint()
+      ..color = AppColors.lavender.withValues(
+        alpha: 0.20,
+      );
+
+    final darkHeartPaint = Paint()
+      ..color = AppColors.lavender.withValues(
+        alpha: 0.09,
+      );
+
+    final coralPaint = Paint()
+      ..color = AppColors.coral.withValues(
+        alpha: 0.80,
+      );
+
+    final pinkPaint = Paint()
+      ..color = AppColors.pink.withValues(
+        alpha: 0.74,
+      );
+
+    final lavenderPaint = Paint()
+      ..color = AppColors.lavender.withValues(
+        alpha: 0.82,
+      );
+
+    void drawPixel(
+      double x,
+      double y,
+      Paint paint, {
+      double scale = 0.84,
+    }) {
+      final pixelSize = unit * scale;
+
+      canvas.drawRect(
+        Rect.fromLTWH(
+          x,
+          y,
+          pixelSize,
+          pixelSize,
+        ),
+        paint,
+      );
+    }
+
+    final trailPixels = <_PixelPosition>[
+      const _PixelPosition(0.2, 6.7),
+      const _PixelPosition(3.0, 8.4),
+      const _PixelPosition(6.2, 10.3),
+      const _PixelPosition(9.4, 9.2),
+      const _PixelPosition(12.6, 11.9),
+      const _PixelPosition(16.2, 10.7),
+      const _PixelPosition(19.7, 13.1),
+      const _PixelPosition(23.0, 11.4),
+      const _PixelPosition(26.0, 13.7),
+    ];
+
+    for (var index = 0; index < trailPixels.length; index++) {
+      final pixel = trailPixels[index];
+
+      Paint selectedPaint;
+
+      if (index == 0 ||
+          index == 2 ||
+          index == 4 ||
+          index == 6) {
+        selectedPaint = coralPaint;
+      } else if (index == 7) {
+        selectedPaint = lavenderPaint;
+      } else {
+        selectedPaint = heartPaint;
+      }
+
+      drawPixel(
+        pixel.column * unit,
+        pixel.row * unit,
+        selectedPaint,
+      );
+    }
+
+    final originX = size.width - (18 * unit);
+    final originY = unit * 0.4;
+
+    const heartOutline = <_PixelPosition>[
+      _PixelPosition(4, 1),
+      _PixelPosition(5, 1),
+      _PixelPosition(6, 1),
+      _PixelPosition(10, 1),
+      _PixelPosition(11, 1),
+      _PixelPosition(12, 1),
+      _PixelPosition(3, 2),
+      _PixelPosition(7, 2),
+      _PixelPosition(9, 2),
+      _PixelPosition(13, 2),
+      _PixelPosition(2, 3),
+      _PixelPosition(8, 3),
+      _PixelPosition(14, 3),
+      _PixelPosition(2, 4),
+      _PixelPosition(14, 4),
+      _PixelPosition(2, 5),
+      _PixelPosition(14, 5),
+      _PixelPosition(2, 6),
+      _PixelPosition(14, 6),
+      _PixelPosition(3, 7),
+      _PixelPosition(13, 7),
+      _PixelPosition(4, 8),
+      _PixelPosition(12, 8),
+      _PixelPosition(5, 9),
+      _PixelPosition(11, 9),
+      _PixelPosition(6, 10),
+      _PixelPosition(10, 10),
+      _PixelPosition(7, 11),
+      _PixelPosition(9, 11),
+      _PixelPosition(8, 12),
+    ];
+
+    for (final pixel in heartOutline) {
+      drawPixel(
+        originX + (pixel.column * unit),
+        originY + (pixel.row * unit),
+        heartPaint,
+        scale: 0.94,
+      );
+    }
+
+    const innerPixels = <_PixelPosition>[
+      _PixelPosition(5, 3),
+      _PixelPosition(6, 3),
+      _PixelPosition(10, 3),
+      _PixelPosition(11, 3),
+      _PixelPosition(4, 4),
+      _PixelPosition(12, 4),
+      _PixelPosition(4, 5),
+      _PixelPosition(12, 5),
+      _PixelPosition(5, 6),
+      _PixelPosition(11, 6),
+      _PixelPosition(6, 7),
+      _PixelPosition(10, 7),
+      _PixelPosition(7, 8),
+      _PixelPosition(9, 8),
+    ];
+
+    for (final pixel in innerPixels) {
+      drawPixel(
+        originX + (pixel.column * unit),
+        originY + (pixel.row * unit),
+        darkHeartPaint,
+        scale: 0.88,
+      );
+    }
+
+    const coralHighlights = <_PixelPosition>[
+      _PixelPosition(2, 5),
+      _PixelPosition(9, 5),
+      _PixelPosition(9, 6),
+    ];
+
+    for (final pixel in coralHighlights) {
+      drawPixel(
+        originX + (pixel.column * unit),
+        originY + (pixel.row * unit),
+        coralPaint,
+        scale: 0.94,
+      );
+    }
+
+    const lavenderHighlights = <_PixelPosition>[
+      _PixelPosition(14, 5),
+      _PixelPosition(12, 7),
+      _PixelPosition(10, 9),
+    ];
+
+    for (final pixel in lavenderHighlights) {
+      drawPixel(
+        originX + (pixel.column * unit),
+        originY + (pixel.row * unit),
+        lavenderPaint,
+        scale: 0.94,
+      );
+    }
+
+    drawPixel(
+      originX + (8 * unit),
+      originY + (5 * unit),
+      pinkPaint,
+      scale: 1.65,
+    );
+  }
+
+  @override
+  bool shouldRepaint(
+    covariant _PixelHeartPainter oldDelegate,
+  ) {
+    return false;
+  }
+}
+
+class _PixelPosition {
+  const _PixelPosition(
+    this.column,
+    this.row,
+  );
+
+  final double column;
+  final double row;
+}
